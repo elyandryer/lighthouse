@@ -99,7 +99,7 @@ module.exports = {
     'deprecations',
     'mainthread-work-breakdown',
     'bootup-time',
-    'webfonts',
+    'font-display',
     'manual/pwa-cross-browser',
     'manual/pwa-page-transitions',
     'manual/pwa-each-page-has-url',
@@ -287,7 +287,7 @@ module.exports = {
         {id: 'bootup-time', weight: 0, group: 'perf-info'},
         {id: 'screenshot-thumbnails', weight: 0},
         {id: 'mainthread-work-breakdown', weight: 0, group: 'perf-info'},
-        {id: 'webfonts', weight: 0, group: 'perf-info'},
+        {id: 'font-display', weight: 0, group: 'perf-info'},
       ],
     },
     'pwa': {
