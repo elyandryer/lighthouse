@@ -268,6 +268,7 @@ const cli = yargs
   .array('save-assets-path')
   .default('config-path', DEFAULT_CONFIG_PATH)
   .default('expectations-path', DEFAULT_EXPECTATIONS_PATH)
+  .default('save-assets-path', [])
   .argv;
 
 const configPath = resolveLocalOrCwd(cli['config-path']);
