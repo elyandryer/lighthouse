@@ -6,16 +6,27 @@
 'use strict';
 
 const Gatherer = require('./gatherer');
+const fontFaceDescriptors = [
+  'display',
+  'family',
+  'featureSettings',
+  'stretch',
+  'style',
+  'unicodeRange',
+  'variant',
+  'weight',
+];
 
 /* eslint-disable */
 function getAllLoadedFonts() {
-  const getFont = fontFace => ({
-    display: fontFace.display,
-    family: fontFace.family,
-    stretch: fontFace.stretch,
-    style: fontFace.style,
-    weight: fontFace.weight,
-  });
+  const getFont = fontFace => {
+    const fontRule = {};
+    fontFaceDescriptors.forEach(descriptor => {
+      fontRule[descriptor] = fontFace[descriptor];
+    });
+
+    return fontRule;
+  };
 
   return document.fonts.ready.then(() => {
     return Array.from(document.fonts).filter(fontFace => fontFace.status === 'loaded')
@@ -24,14 +35,7 @@ function getAllLoadedFonts() {
 }
 
 function getFontFaceFromStylesheets() {
-  function resolveUrl(url) {
-    const link = document.createElement('a');
-    link.href = url;
-
-    return link.href;
-  }
-
-  function getFontFaceRules(stylesheet) {
+  function getSheetsFontFaces(stylesheet) {
     const fontFaceRules = [];
     if (stylesheet.cssRules) {
       for (const rule of stylesheet.cssRules) {
@@ -42,13 +46,16 @@ function getFontFaceFromStylesheets() {
             stretch: rule.style.fontStretch || 'normal',
             style: rule.style.fontStyle || 'normal',
             weight: rule.style.fontWeight || 'normal',
+            variant: rule.style.fontVariant || 'normal',
+            unicodeRange: rule.style.unicodeRange || 'U+0-10FFFF',
+            featureSettings: rule.style.featureSettings || 'normal',
             src: [],
           };
 
           if (rule.style.src) {
             const matches = rule.style.src.match(fontUrlRegex);
             if (matches) {
-              fontsObject.src.push(resolveUrl(matches[1]));
+              fontsObject.src.push(new URL(matches[1], location.href).href);
             }
           }
 
@@ -74,7 +81,7 @@ function getFontFaceFromStylesheets() {
     });
   }
 
-  const fontUrlRegex = new RegExp('url\\((?:"|\')([^"]+)(?:"|\')\\)');
+  const fontUrlRegex = new RegExp('url\\((?:")([^"]+)(?:"|\')\\)');
   const fontFacePromises = [];
   // get all loaded stylesheets
   for (const stylesheet of document.styleSheets) {
@@ -84,7 +91,7 @@ function getFontFaceFromStylesheets() {
         !stylesheet.ownerNode.crossOrigin) {
           fontFacePromises.push(loadStylesheetWithCORS(stylesheet.ownerNode));
       } else {
-        fontFacePromises.push(Promise.resolve(getFontFaceRules(stylesheet)));
+        fontFacePromises.push(Promise.resolve(getSheetsFontFaces(stylesheet)));
       }
     } catch (err) {
       fontFacePromises.push(loadStylesheetWithCORS(stylesheet.ownerNode));
@@ -105,17 +112,21 @@ class Fonts extends Gatherer {
 
   _findSameFontFamily(fontFace, fontFacesList) {
     return fontFacesList.find(fontItem => {
-      return fontFace.family === fontItem.family &&
-        fontFace.style === fontItem.style &&
-        fontFace.weight === fontItem.weight;
+      return !fontFaceDescriptors.find(descriptor => {
+        return fontFace[descriptor] !== fontItem[descriptor];
+      });
     });
   }
 
   afterPass({driver}) {
     return Promise.all(
       [
-        driver.evaluateAsync(`(${getAllLoadedFonts.toString()})()`),
-        driver.evaluateAsync(`(${getFontFaceFromStylesheets.toString()})()`),
+        driver.evaluateAsync(`(()=>{`
+          + `const fontFaceDescriptors=JSON.parse('${JSON.stringify(fontFaceDescriptors)}');`
+          + `return (${getAllLoadedFonts.toString()})();})()`),
+        driver.evaluateAsync(`(()=>{`
+          + `const fontFaceDescriptors=JSON.parse('${JSON.stringify(fontFaceDescriptors)}');`
+          + `return (${getFontFaceFromStylesheets.toString()})();})()`),
       ]
     ).then(([loadedFonts, fontFaces]) => {
       return loadedFonts.map(fontFace => {

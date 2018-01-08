@@ -17,6 +17,9 @@ const openSansFont = {
   stretch: 'normal',
   style: 'normal',
   weight: '400',
+  variant: 'normal',
+  unicodeRange: 'U+0-10FFFF',
+  featureSettings: 'normal',
 };
 const openSansFontBold = {
   display: 'auto',
@@ -24,6 +27,9 @@ const openSansFontBold = {
   stretch: 'normal',
   style: 'normal',
   weight: '600',
+  variant: 'normal',
+  unicodeRange: 'U+0-10FFFF',
+  featureSettings: 'normal',
 };
 
 const openSansFontFaces = [];
