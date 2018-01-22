@@ -17,7 +17,7 @@ const fontFaceDescriptors = [
   'weight',
 ];
 
-/* eslint-disable */
+/* eslint-env browser*/
 function getAllLoadedFonts() {
   const getFont = fontFace => {
     const fontRule = {};
@@ -89,7 +89,7 @@ function getFontFaceFromStylesheets() {
     try {
       if (stylesheet.cssRules === null && stylesheet.href && stylesheet.ownerNode &&
         !stylesheet.ownerNode.crossOrigin) {
-          fontFacePromises.push(loadStylesheetWithCORS(stylesheet.ownerNode));
+        fontFacePromises.push(loadStylesheetWithCORS(stylesheet.ownerNode));
       } else {
         fontFacePromises.push(Promise.resolve(getSheetsFontFaces(stylesheet)));
       }
@@ -101,7 +101,7 @@ function getFontFaceFromStylesheets() {
   return Promise.all(fontFacePromises)
     .then(fontFaces => [].concat(...fontFaces));
 }
-/* eslint-enable */
+/* eslint-env node */
 
 class Fonts extends Gatherer {
   constructor() {
