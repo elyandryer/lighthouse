@@ -36,6 +36,7 @@ function getAllLoadedFonts() {
 
 function getFontFaceFromStylesheets() {
   function getSheetsFontFaces(stylesheet) {
+    const fontUrlRegex = 'url\\((?:")([^"]+)(?:"|\')\\)';
     const fontFaceRules = [];
     if (stylesheet.cssRules) {
       for (const rule of stylesheet.cssRules) {
@@ -53,9 +54,12 @@ function getFontFaceFromStylesheets() {
           };
 
           if (rule.style.src) {
-            const matches = rule.style.src.match(fontUrlRegex);
+            const matches = rule.style.src.match(new RegExp(fontUrlRegex, 'g'));
             if (matches) {
-              fontsObject.src.push(new URL(matches[1], location.href).href);
+              fontsObject.src = matches.map(match => {
+                const res = new RegExp(fontUrlRegex).exec(match);
+                return new URL(res[1], location.href).href;
+              });
             }
           }
 
@@ -81,7 +85,6 @@ function getFontFaceFromStylesheets() {
     });
   }
 
-  const fontUrlRegex = new RegExp('url\\((?:")([^"]+)(?:"|\')\\)');
   const fontFacePromises = [];
   // get all loaded stylesheets
   for (const stylesheet of document.styleSheets) {
