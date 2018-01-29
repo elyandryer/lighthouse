@@ -18,6 +18,11 @@ const fontFaceDescriptors = [
 ];
 
 /* eslint-env browser*/
+
+/**
+ * Collect applied webfont data from `document.fonts`
+ * @return {{}}
+ */
 function getAllLoadedFonts() {
   const getFont = fontFace => {
     const fontRule = {};
@@ -34,7 +39,16 @@ function getAllLoadedFonts() {
   });
 }
 
+/**
+ * Collect authored webfont data from the `CSSFontFaceRule`s present in document.styleSheets
+ * @return {{}}
+ */
 function getFontFaceFromStylesheets() {
+  /**
+   * Get full data about each CSSFontFaceRule within a styleSheet object
+   * @param {StyleSheet} stylesheet
+   * @return {{}}
+   */
   function getSheetsFontFaces(stylesheet) {
     const fontUrlRegex = 'url\\((?:")([^"]+)(?:"|\')\\)';
     const fontFaceRules = [];
@@ -71,6 +85,12 @@ function getFontFaceFromStylesheets() {
     return fontFaceRules;
   }
 
+  /**
+   * Provided a <link rel=stylesheet> element, it attempts to reload the asset with CORS headers.
+   * Without CORS headers, a cross-origin stylesheet will have node.styleSheet.cssRules === null.
+   * @param {Element} oldNode
+   * @return {<!Promise>}
+   */
   function loadStylesheetWithCORS(oldNode) {
     const newNode = oldNode.cloneNode(true);
 
@@ -85,24 +105,23 @@ function getFontFaceFromStylesheets() {
     });
   }
 
-  const fontFacePromises = [];
-  // get all loaded stylesheets
+  const promises = [];
+  // Get all loaded stylesheets
   for (const stylesheet of document.styleSheets) {
-    // Cross-origin stylesheets don't expose cssRules by default. We reload them with CORS headers.
     try {
+      // Cross-origin stylesheets don't expose cssRules by default. We reload them w/ CORS headers.
       if (stylesheet.cssRules === null && stylesheet.href && stylesheet.ownerNode &&
         !stylesheet.ownerNode.crossOrigin) {
-        fontFacePromises.push(loadStylesheetWithCORS(stylesheet.ownerNode));
+        promises.push(loadStylesheetWithCORS(stylesheet.ownerNode));
       } else {
-        fontFacePromises.push(Promise.resolve(getSheetsFontFaces(stylesheet)));
+        promises.push(Promise.resolve(getSheetsFontFaces(stylesheet)));
       }
     } catch (err) {
-      fontFacePromises.push(loadStylesheetWithCORS(stylesheet.ownerNode));
+      promises.push(loadStylesheetWithCORS(stylesheet.ownerNode));
     }
   }
-
-  return Promise.all(fontFacePromises)
-    .then(fontFaces => [].concat(...fontFaces));
+  // Flatten results
+  return Promise.all(promises).then(fontFaces => [].concat(...fontFaces));
 }
 /* eslint-env node */
 
