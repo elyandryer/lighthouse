@@ -12,6 +12,7 @@ const Audit = require('../audits/audit');
 const URL = require('../lib/url-shim');
 const NetworkRecorder = require('../lib/network-recorder.js');
 const blankPageSource = fs.readFileSync(__dirname + '/blank-page.html', 'utf8');
+const logoPageSource = fs.readFileSync(__dirname + '/logo-page.html', 'utf8');
 
 /**
  * @typedef {!Object<string, !Array<!Promise<*>>>} GathererResults
@@ -58,20 +59,31 @@ const blankPageSource = fs.readFileSync(__dirname + '/blank-page.html', 'utf8');
 class GatherRunner {
   /**
    * Loads a blank page and waits there briefly. Since a Page.reload command does
-   * not let a service worker take over, we navigate away and then come back to
-   * reload. We do not `waitForLoad` on about:blank since a page load event is
-   * never fired on it.
+   * not let a service worker take over, we navigate away and then come back to reload.
    * @param {!Driver} driver
    * @param {url=} url
    * @param {number=} duration
    * @return {!Promise}
    */
   static loadBlank(driver, url) {
-    // The real about:blank doesn't fire onload and is full of mysteries
-    //   https://github.com/whatwg/html/issues/816#issuecomment-288931753
-    // To improve speed and avoid anomalies, we use a basic data uri blank page
-    url = url || `data:text/html,${blankPageSource}`;
-    return driver.gotoURL(url).then(_ => driver.waitForLoadEvent());
+    // The real about:blank doesn't fire onload and is full of mysteries (https://goo.gl/mdQkYr)
+    // To improve speed and avoid anomalies (https://goo.gl/Aho2R9), we use a basic data uri page
+    url = url || `data:text/html,${logoPageSource}`;
+    const blankPageUrl = `data:text/html,${blankPageSource}`;
+
+    const awaitFrameNav = _ => new Promise(resolve => {
+      driver.on('Page.frameNavigated', function navListener() {
+        driver.off('Page.frameNavigated', navListener);
+        resolve();
+      });
+    });
+
+    // We need onload to reliably fire, so we navigate to two differnt data-uri's,
+    // To confirm the browser navigates to both, we wait for Page.frameNavigated then onload
+    return driver.gotoURL(blankPageUrl)
+      .then(_ => awaitFrameNav())
+      .then(_ => driver.gotoURL(url))
+      .then(_ => driver.waitForLoadEvent());
   }
 
   /**
