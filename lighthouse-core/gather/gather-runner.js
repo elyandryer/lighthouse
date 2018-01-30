@@ -71,17 +71,12 @@ class GatherRunner {
     url = url || `data:text/html,${logoPageSource}`;
     const blankPageUrl = `data:text/html,${blankPageSource}`;
 
-    const awaitFrameNav = _ => new Promise(resolve => {
-      driver.on('Page.frameNavigated', function navListener() {
-        driver.off('Page.frameNavigated', navListener);
-        resolve();
-      });
-    });
-
-    // We need onload to reliably fire, so we navigate to two differnt data-uri's,
-    // To confirm the browser navigates to both, we wait for Page.frameNavigated then onload
+    // Only navigating to a single data-uri doesn't reliably trigger onload. (Why? Beats me.)
+    // Two data uris work, however the two need to be sufficiently different (Why? Beats me.)
+    // If they are too similar, Chrome considers the latter to be as superficial as a pushState
+    // Lastly, it's possible for two navigations to be racy, so we await onload inbetween.
     return driver.gotoURL(blankPageUrl)
-      .then(_ => awaitFrameNav())
+      .then(_ => driver.waitForLoadEvent())
       .then(_ => driver.gotoURL(url))
       .then(_ => driver.waitForLoadEvent());
   }
