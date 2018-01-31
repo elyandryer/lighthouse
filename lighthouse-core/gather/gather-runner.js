@@ -23,20 +23,21 @@ const logoPageSource = fs.readFileSync(__dirname + '/logo-page.html', 'utf8');
  * Execution sequence when GatherRunner.run() is called:
  *
  * 1. Setup
- *   A. navigate to about:blank
  *   B. driver.connect()
  *   C. GatherRunner.setupDriver()
- *     i. assertNoSameOriginServiceWorkerClients
- *     ii. beginEmulation
- *     iii. enableRuntimeEvents
- *     iv. evaluateScriptOnLoad rescue native Promise from potential polyfill
- *     v. register a performance observer
- *     vi. register dialog dismisser
- *     vii. clearDataForOrigin
+ *     i. navigate to a blank page
+ *     ii. assertNoSameOriginServiceWorkerClients
+ *     iii. retrieve and save userAgent
+ *     iv. beginEmulation
+ *     v. enableRuntimeEvents
+ *     vi. evaluateScriptOnLoad rescue native Promise from potential polyfill
+ *     vii. register a performance observer
+ *     viii. register dialog dismisser
+ *     iv. clearDataForOrigin
  *
  * 2. For each pass in the config:
  *   A. GatherRunner.beforePass()
- *     i. navigate to about:blank
+ *     i. navigate to a blank page
  *     ii. Enable network request blocking for specified patterns
  *     iii. all gatherers' beforePass()
  *   B. GatherRunner.pass()
@@ -110,8 +111,10 @@ class GatherRunner {
   static setupDriver(driver, gathererResults, options) {
     log.log('status', 'Initializing…');
     const resetStorage = !options.flags.disableStorageReset;
-    // Enable emulation based on flags
-    return driver.assertNoSameOriginServiceWorkerClients(options.url)
+    // In the devtools/extension case, we can't still be on the site while trying to clear state
+    // So we first navigate to a blank page, then apply our emulation & setup
+    return GatherRunner.loadBlank(driver)
+      .then(_ => driver.assertNoSameOriginServiceWorkerClients(options.url))
       .then(_ => driver.getUserAgent())
       .then(userAgent => {
         gathererResults.UserAgent = [userAgent];
@@ -415,7 +418,6 @@ class GatherRunner {
     };
 
     return driver.connect()
-      .then(_ => GatherRunner.loadBlank(driver))
       .then(_ => GatherRunner.setupDriver(driver, gathererResults, options))
 
       // Run each pass
