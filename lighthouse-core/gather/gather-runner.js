@@ -206,11 +206,17 @@ class GatherRunner {
     const blockedUrls = (options.config.blockedUrlPatterns || [])
       .concat(options.flags.blockedUrlPatterns || []);
     const blankPage = options.config.blankPage;
-    const pass = GatherRunner.loadBlank(options.driver, blankPage)
-        // Set request blocking before any network activity
-        // No "clearing" is done at the end of the pass since blockUrlPatterns([]) will unset all if
-        // neccessary at the beginning of the next pass.
-        .then(() => options.driver.blockUrlPatterns(blockedUrls));
+
+    // On the very first pass we're already on blank
+    const skipLoadBlank = options.config.passName === 'defaultPass';
+    let pass = skipLoadBlank
+      ? Promise.resolve()
+      : GatherRunner.loadBlank(options.driver, blankPage);
+
+    // Set request blocking before any network activity
+    // No "clearing" is done at the end of the pass since blockUrlPatterns([]) will unset all if
+    // neccessary at the beginning of the next pass.
+    pass = pass.then(() => options.driver.blockUrlPatterns(blockedUrls));
 
     return options.config.gatherers.reduce((chain, gatherer) => {
       return chain.then(_ => {
