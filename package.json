@@ -47,7 +47,8 @@
     "bundlesize": "bundlesize",
     "plots-smoke": "bash plots/test/smoke.sh",
     "changelog": "conventional-changelog --config ./build/changelog-generator/index.js --infile changelog.md --same-file",
-    "type-check": "tsc -p ."
+    "type-check": "tsc -p .",
+    "mixed-content": "./lighthouse-cli/index.js --chrome-flags='--headless' --config-path=./lighthouse-core/config/mixed-content.js"
   },
   "devDependencies": {
     "@types/configstore": "^2.1.1",
@@ -89,7 +90,7 @@
     "jpeg-js": "0.1.2",
     "js-library-detector": "^4.3.1",
     "lighthouse-logger": "^1.0.0",
-    "metaviewport-parser": "0.1.0",
+    "metaviewport-parser": "0.2.0",
     "mkdirp": "0.5.1",
     "opn": "4.0.2",
     "parse-cache-control": "1.0.1",
