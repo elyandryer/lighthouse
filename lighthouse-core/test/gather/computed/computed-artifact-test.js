@@ -47,21 +47,18 @@ describe('ComputedArtifact base class', () => {
       .then(_ => assert.throws(() => multiInputArtifact.request(1)));
   });
 
-  it('caches computed artifacts', () => {
-    const testComputedArtifact = new TestComputedArtifact();
+  it('caches computed artifacts by strict equality', () => {
+    const computedArtifact = new TestComputedArtifact();
 
-    const obj0 = {x: 1};
-    const obj1 = {x: 2};
-
-    return testComputedArtifact.request(obj0).then(result => {
+    return computedArtifact.request({x: 1}).then(result => {
       assert.equal(result, 0);
-    }).then(_ => testComputedArtifact.request(obj1)).then(result => {
+    }).then(_ => computedArtifact.request({x: 2})).then(result => {
       assert.equal(result, 1);
-    }).then(_ => testComputedArtifact.request(obj0)).then(result => {
+    }).then(_ => computedArtifact.request({x: 1})).then(result => {
       assert.equal(result, 0);
-    }).then(_ => testComputedArtifact.request(obj1)).then(result => {
+    }).then(_ => computedArtifact.request({x: 2})).then(result => {
       assert.equal(result, 1);
-      assert.equal(testComputedArtifact.computeCounter, 2);
+      assert.equal(computedArtifact.computeCounter, 2);
     });
   });
 
