@@ -1,44 +1,45 @@
 # Recipes Puppeteer with Lighthouse
 
 **Note**: https://github.com/GoogleChrome/lighthouse/issues/3837 tracks the discussion for making Lighthouse work in concert with Puppeteer.
-Some things are possible today (login to a page using Puppeteer, audit it using Lighthouse) while others (A/B testing the perf of UI changes) are not.
+Some things are possible today (login to a page using Puppeteer, audit it using Lighthouse) while others (A/B testing the perf of UI changes) are trickier or not yet possible.
 
-### Custom network throttle settings using Puppeteer
+### Inject JS/CSS before the page loads
 
-By default, Lighthouse uses a mobile 3G connecton for it's network throttlings. It's possible to use Puppeter
-to launch Chrome and customize these settings. 
-
-Flow: 
-1. disable the throttling settings in Lighthouse.
-2. Launch Chrome using Puppeteer and tell Lighthouse to reuse Puppeteer's chrome instance.
-3. Tell lighthouse to programmatically load the page.
-4. Watch for the page to open and set the emulation conditions:
+The example below shows how to inject CSS into the page before Lighthouse audits the page.
+A similar approach can be taken for injecting JavaScript.
 
 ```js
 const puppeteer = require('puppeteer');
-const lighthouse = require('lighthouse');;
+const lighthouse = require('lighthouse');
 const {URL} = require('url');
 
 (async() => {
 const url = 'https://www.chromestatus.com/features';
-const networkConditions = {
-  offline: false,
-  latency: 800,
-  downloadThroughput: Math.floor(1.6 * 1024 * 1024 / 8), // 1.6Mbps
-  uploadThroughput: Math.floor(750 * 1024 / 8) // 750Kbps
-};
 
-// Use Puppeteer to launch headless Chrome.
-const browser = await puppeteer.launch({headless: true});
+// Use Puppeteer to launch Chrome. appMode launches headful chrome and doesn't size the viewport.
+const browser = await puppeteer.launch({appMode: true});
 
 // Wait for Lighthouse to open url, then customize network conditions.
 // Note: this will re-establish these conditions when LH reloads the page. Think that's ok....
 browser.on('targetchanged', async target => {
   const page = await target.page();
 
+  function addStyleContent(content) {
+    const style = document.createElement('style');
+    style.type = 'text/css';
+    style.appendChild(document.createTextNode(content));
+    document.head.appendChild(style);
+  }
+  
+  const css = '* {color: red}';
+
   if (page && page.url() === url) {
+    // Note: can't use page.addStyleTag due to github.com/GoogleChrome/puppeteer/issues/1955.
+    // Do it ourselves.
     const client = await page.target().createCDPSession();
-    await client.send('Network.emulateNetworkConditions', networkConditions);
+    await client.send('Runtime.evaluate', {
+      expression: `(${addStyleContent.toString()})('${css}')`
+    });
   }
 });
 
@@ -48,9 +49,6 @@ const lhr = await lighthouse(url, {
   port: (new URL(browser.wsEndpoint())).port,
   output: 'json',
   logLevel: 'info',
-  disableNetworkThrottling: true,
-  // disableCpuThrottling: true,
-  disableDeviceEmulation: true,
 });
 
 console.log(`Lighthouse score: ${lhr.score}`);
@@ -65,7 +63,7 @@ When using Lighthouse programmatically, you'll often use chrome-launcher to laun
 Puppeteer can reconnect to this existing browser instance like so:
 
 ```js
-onst chromeLauncher = require('chrome-launcher');
+const chromeLauncher = require('chrome-launcher');
 const puppeteer = require('puppeteer');
 const lighthouse = require('lighthouse');
 const request = require('request');
