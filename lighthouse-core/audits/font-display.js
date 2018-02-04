@@ -20,7 +20,7 @@ class FontDisplay extends Audit {
       description: 'All text remains visible during webfont loads',
       failureDescription: 'Avoid invisible text while webfonts are loading',
       helpText: 'Leverage the font-display CSS feature to ensure text is user-visible while ' +
-        'webfonts are loading and avoid a FOIT.',
+        'webfonts are loading.',
       requiredArtifacts: ['devtoolsLogs', 'Fonts'],
     };
   }

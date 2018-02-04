@@ -18,15 +18,16 @@ const fontFaceDescriptors = [
 ];
 
 /* eslint-env browser*/
-
 /**
  * Collect applied webfont data from `document.fonts`
+ * @param {string[]}
  * @return {{}}
  */
-function getAllLoadedFonts() {
+/* istanbul ignore next */
+function getAllLoadedFonts(descriptors) {
   const getFont = fontFace => {
     const fontRule = {};
-    fontFaceDescriptors.forEach(descriptor => {
+    descriptors.forEach(descriptor => {
       fontRule[descriptor] = fontFace[descriptor];
     });
 
@@ -43,6 +44,7 @@ function getAllLoadedFonts() {
  * Collect authored webfont data from the `CSSFontFaceRule`s present in document.styleSheets
  * @return {{}}
  */
+/* istanbul ignore next */
 function getFontFaceFromStylesheets() {
   /**
    * Get full data about each CSSFontFaceRule within a styleSheet object
@@ -126,12 +128,6 @@ function getFontFaceFromStylesheets() {
 /* eslint-env node */
 
 class Fonts extends Gatherer {
-  constructor() {
-    super();
-
-    this.stylesheetIds = [];
-  }
-
   _findSameFontFamily(fontFace, fontFacesList) {
     return fontFacesList.find(fontItem => {
       return !fontFaceDescriptors.find(descriptor => {
@@ -144,11 +140,9 @@ class Fonts extends Gatherer {
     return Promise.all(
       [
         driver.evaluateAsync(`(()=>{`
-          + `const fontFaceDescriptors=JSON.parse('${JSON.stringify(fontFaceDescriptors)}');`
-          + `return (${getAllLoadedFonts.toString()})();})()`),
-        driver.evaluateAsync(`(()=>{`
-          + `const fontFaceDescriptors=JSON.parse('${JSON.stringify(fontFaceDescriptors)}');`
-          + `return (${getFontFaceFromStylesheets.toString()})();})()`),
+          + `const args = ${JSON.stringify(fontFaceDescriptors)};`
+          + `return (${getAllLoadedFonts.toString()})(args);})()`),
+        driver.evaluateAsync(`(${getFontFaceFromStylesheets.toString()})()`),
       ]
     ).then(([loadedFonts, fontFaces]) => {
       return loadedFonts.map(fontFace => {
