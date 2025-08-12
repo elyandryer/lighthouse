@@ -86,7 +86,7 @@
     "devtools-timeline-model": "1.1.6",
     "esprima": "^4.0.0",
     "http-link-header": "^0.8.0",
-    "inquirer": "^3.3.0",
+    "inquirer": "^8.2.7",
     "jpeg-js": "0.1.2",
     "js-library-detector": "^4.3.1",
     "lighthouse-logger": "^1.0.0",
